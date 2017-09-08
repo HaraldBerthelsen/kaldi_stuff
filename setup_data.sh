@@ -61,8 +61,8 @@ do
 
             #TODO get text from xml files instead, to make sure that everything matches
             text=`cat $wavfiledir/$wavfilebase.txt`
-            echo "$utterance_id $text" >> $text_file
             #${,,} to downcase - does it work with utf-8? Seems like it..
+            echo "$utterance_id ${text,,}" >> $text_file
             echo "${text,,}" >> $corpus_file
         done
     done

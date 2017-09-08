@@ -7,7 +7,7 @@ rm -rf ../kaldi/egs/$name
 bash setup_data.sh $name $audio
 #Assumes $audio/(train|test)/<speaker>/xml/<xmlfiles>
 bash setup_language_files.sh $name $audio
-cp scripts/* ../kaldi/egs/$name/
+cp -r scripts/* ../kaldi/egs/$name/
 cp -r conf ../kaldi/egs/$name/
 
 cd ../kaldi/egs/$name/
@@ -28,14 +28,13 @@ if ! bash utils/validate_data_dir.sh --no-feats data/test; then
     exit 1
 fi
 
-#works, but decoding waits for a long time before it starts ?
-#this doesn't happen in the irish_alphabet setup. What is different?
-if ! bash run.sh; then
-    exit 1
-fi
 
-if ! bash nnet2_simple/run_nnet2_simple.sh; then
-    exit 1
-fi
+#if ! bash run.sh; then
+#    exit 1
+#fi
+
+#if ! bash nnet2_simple/run_nnet2_simple.sh; then
+#    exit 1
+#fi
 
 
