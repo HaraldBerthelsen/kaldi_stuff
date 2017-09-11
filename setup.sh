@@ -29,12 +29,12 @@ if ! bash utils/validate_data_dir.sh --no-feats data/test; then
 fi
 
 
-#if ! bash run.sh; then
-#    exit 1
-#fi
+if ! bash run.sh; then
+   exit 1
+fi
 
-#if ! bash nnet2_simple/run_nnet2_simple.sh; then
-#    exit 1
-#fi
+if ! bash nnet2_simple/run_nnet2_simple.sh; then
+   exit 1
+fi
 
 
