@@ -1,9 +1,12 @@
-name=irish_new_test
-audio=/home/harald/git/kaldi/egs/irish_alphabet/audio
+#name=irish_new_test
+#audio=/home/harald/git/kaldi/egs/irish_alphabet/audio
+
+name=irish_named_entities_test
+audio=/home/harald/named_entities_3_dialects/
 
 rm -rf ../kaldi/egs/$name
 
-#Assumes $audio/(train|test)/<speaker>/<wavfiles+txtfiles>
+#Assumes $audio/(train|test)/<speaker>/<wav|xml>/<files>
 bash setup_data.sh $name $audio
 #Assumes $audio/(train|test)/<speaker>/xml/<xmlfiles>
 bash setup_language_files.sh $name $audio

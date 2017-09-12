@@ -1,0 +1,46 @@
+WORDS SPOKEN           FILE                      RECOGNITION RESULT
+na laethanta    anb_named-entities_000           laethanta 
+dé luain        anb_named-entities_001           ciúin 
+dé máirt        anb_named-entities_002           teangacha 
+dé céadaoin     anb_named-entities_003           céadaoin 
+déardaoin       anb_named-entities_004           céadaoin 
+dé haoine       anb_named-entities_005           trí na 
+dé sathairn     anb_named-entities_006           samhain 
+dé domhnaigh    anb_named-entities_007           dé domhnaigh 
+an luan         anb_named-entities_008           an linn 
+an máirt        anb_named-entities_009           an bharraigh 
+
+na laethanta    nnc_CI0001CDNamedEntities01_0001 na laethanta . 
+dé luain        nnc_CI0001CDNamedEntities01_0002 dé luain . 
+dé máirt        nnc_CI0001CDNamedEntities01_0003 tullamore . 
+dé céadaoin     nnc_CI0001CDNamedEntities01_0004 déardaoin 
+déardaoin       nnc_CI0001CDNamedEntities01_0005 déardaoin 
+dé haoine       nnc_CI0001CDNamedEntities01_0006 daonna . 
+dé sathairn     nnc_CI0001CDNamedEntities01_0007 dé sathairn . 
+dé domhnaigh    nnc_CI0001CDNamedEntities01_0008 dé domhnaigh . 
+an luan         nnc_CI0001CDNamedEntities01_0009 an slán . 
+
+na laethanta    pmc_MI0001RCNamedEntities01_0001 . laethanta 
+dé luain        pmc_MI0001RCNamedEntities01_0002 dé luain 
+dé máirt        pmc_MI0001RCNamedEntities01_0003 dé máirt 
+dé céadaoin     pmc_MI0001RCNamedEntities01_0004 céadaoin 
+déardaoin       pmc_MI0001RCNamedEntities01_0005 déardaoin 
+dé haoine       pmc_MI0001RCNamedEntities01_0006 dé haoine 
+dé sathairn     pmc_MI0001RCNamedEntities01_0007 is sathairn 
+dé domhnaigh    pmc_MI0001RCNamedEntities01_0008 dé domhnaigh 
+an luan         pmc_MI0001RCNamedEntities01_0009 an lú 
+
+dé luain        andy                             hí éirinn hí
+dé máirt        andy                             a hí aghris
+dé céadaoin     andy                             is sin c
+déardaoin       andy                             is irish suíomh
+dé haoine       andy                             an deich irish
+dé sathairn     andy                             teastas ar tg
+dé domhnaigh    andy                             a hí is road
+
+Synthesised input, co hts:
+a haon a dó a trí                                agh an go dó go chill
+baile átha cliath                                baile átha cliath
+Fáilte go abair.ie – An Sintéiseoir Gaeilge      fáite go abair ponc agh uí an seisear gaeilge a
+dún na ngall                                     domhnaigh loch . 
+sráid, street                                    sráid chill

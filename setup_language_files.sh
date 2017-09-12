@@ -30,14 +30,14 @@ done
 cat $tmpdir/*.lex | sort -u > $tmpdir/tmp.lex
 
 #fixes for the alphabet files
-cat $tmpdir/tmp.lex | grep -v "SILENCE_TOKEN" | grep -v "None" | sed 's/xletter//g' | sed 's/ 0 / /g' >> $tmpdir/tmp2.lex
+cat $tmpdir/tmp.lex | grep -v "SILENCE_TOKEN" | grep -v "None" | sed 's/xletter//g' | sed 's/ 0 / /g' > $tmpdir/tmp2.lex
 mv $tmpdir/tmp2.lex $tmpdir/tmp.lex
 
 echo "!SIL sil
 <UNK> spn" > $lexicon_file
 cat $tmpdir/tmp.lex >> $lexicon_file
 
-cut -f 2- -d " " $tmpdir/tmp.lex | sed 's/ /\n/g' | sort -u > $nonsilence_phones_file
+cut -f 2- -d " " $tmpdir/tmp.lex | sed 's/ /\n/g' | sort -u | grep -v "^$" | grep -v "sil" > $nonsilence_phones_file
 
 echo "sil
 spn" > $silence_phones_file

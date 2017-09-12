@@ -1,0 +1,83 @@
+8/9
+Works fine with the alphabet files.
+Next thing is to try with a slightly bigger set of files
+
+Why not "named entities". They are also nearly the same cross dialects.
+
+phoneticsrv2:/home/harald/named_entities_3_dialects
+UL: 199 files
+CO: 518 files
+MU: 522 files
+16kHz wav, xml names corresponding to wav
+
+Use the xml files to extract the text.
+
+Change file structure for setup.sh to (train|test)/<speaker>/(wav|txt|xml)
+
+OK, changed setup_data.sh now works for alphabet, testing with named_entities.
+No get these errors:
+
+___start___
+
+Checking data/local/dict/nonsilence_phones.txt ...
+--> reading data/local/dict/nonsilence_phones.txt
+--> ERROR: empty line in data/local/dict/nonsilence_phones.txt (line 1)
+
+Checking disjoint: silence_phones.txt, nonsilence_phones.txt
+--> ERROR: silence_phones.txt and nonsilence_phones.txt has overlap: sil 
+
+Checking data/local/dict/lexicon.txt
+--> reading data/local/dict/lexicon.txt
+--> ERROR: lexicon.txt contains word / with empty pronunciation.
+--> ERROR: lexicon.txt contains word 2 with empty pronunciation.
+--> ERROR: lexicon.txt contains word 4 with empty pronunciation.
+--> ERROR: line 'chomhairle x oo r lj @
+' of data/local/dict/lexicon.txt is repeated
+
+Checking data/local/dict/extra_questions.txt ...
+--> data/local/dict/extra_questions.txt is empty (this is OK)
+--> ERROR validating dictionary directory data/local/dict (see detailed error messages above)
+
+*Error validating directory data/local/dict*
+
+___end___
+
+Editing lexicon.txt and nonsilence_phones.txt to remove these errors, and see what happens then..
+It seems to be running..
+So correct setup_language_data.sh so that these things don't happen:
+nonsilence_phones.txt:
+* Don't write empty string, don't write sil
+lexicon.txt:
+* Don't write empty transcriptions (but what happens with these words)
+* Don't write the same word twice (why was "chomhairle" not removed by "sort -u"?)
+TODO: The xml files contain transcriptions that have been re-syllabified according to Christoph's rules. Should be redone without that, because the lexicon now contains transcriptions like:
+abair a b @ rj
+abair l a b @ rj
+Where the second comes from "tionscadal abair" nnc/xml/CI0001CDNamedEntities02_0029.xml
+The transcription without re-syllabification is available in <word input_string="abair" original_transcription="1 a . 0 b @ rj" 
+
+------
+11/9
+The script "run.sh" now completes for named_entities, and the WER looks better than for alphabet: 
+exp/tri1/decode/wer_11
+%WER 16.67 [ 11 / 66, 4 ins, 5 del, 2 sub ]
+How can I find out what it actually recognised in the test files?
+emacs exp/tri1/decode/log/decode.1.log
+
+Also testing bash nnet2_simple/run_nnet2_simple.sh
+Yes, works
+emacs exp/nnet2/nnet2_simple/decode/log/decode.1.log
+
+TEST
+bash decode_hb_2.sh ~/named_entities_3_dialects/test/anb/wav/named-entities_002.wav exp/tri1/ 16
+expected "dé máirt", result "dé máirt" :)
+
+Decode with nnet2 doesn't work in the same way:
+bash decode_hb_2.sh ~/named_entities_3_dialects/test/anb/wav/named-entities_002.wav exp/nnet2/nnet2_simple/ 11
+steps/decode.sh --config conf/decode.config --nj 1 --cmd run.pl exp/nnet2/nnet2_simple//graph transcriptions exp/nnet2/nnet2_simple//decode
+decode.sh: no such file exp/nnet2/nnet2_simple//graph/HCLG.fst
+
+Ok so the decoding results (for tri1, days of the week) are a bit too good..
+Find out what it does. What is the language model? Recognised phonemes? Confidence?
+There was an error in my script: corpus.txt only contained the test sentences :)
+
