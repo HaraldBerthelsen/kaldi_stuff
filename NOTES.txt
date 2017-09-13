@@ -81,3 +81,46 @@ Ok so the decoding results (for tri1, days of the week) are a bit too good..
 Find out what it does. What is the language model? Recognised phonemes? Confidence?
 There was an error in my script: corpus.txt only contained the test sentences :)
 
+Ok works now, and decode_hb_2.sh and decode_hb_nnet2.sh work for decoding.
+
+NEXT
+I suppose try more data? Say 500 files of each in training? And maybe more speakers - like the an punk recordings? Xml files for these?
+
+IDEA
+Change the setup so that instead of assuming data in train|test directories, it assumes two files containing tabseparated
+<file_ID> <speaker> <path-to-wavfile> <orthography> (<transcription>)
+
+orthography: "word word word"
+transcription: "phone phone phone # phone phone phone # phone phone phone"
+If transcription is missing, use lts-server to provide it
+
+We can have one big corpus file, and split it in various ways (test with random selection, one speaker, first|last for all speakers, manual split)
+
+Specific scripts to create the corpusfile from xml+wav, txt+wav, and maybe other?
+
+So from the big file, we:
+1) create corpus.txt
+2) create lexicon.txt, nonsilence_phones.txt, silence_phones.txt, optional_silence.txt
+3) split into train|test (code or manual)
+4) create spk2gender, utt2spk, wav.scp, text
+
+Nicer to do in python..
+
+Create one corpusfile from each speaker/session (or any group of files that is interesting..)
+One file for anb text01, one for nnc corpas beag, one for comhrá, one for an punk etc
+
+Data directory:
+
+data/
+    name_of_section/ (anb_synthesis, comhrá, an_punk, etc)
+        corpusfile.txt
+        README.txt (details what's here, where it was found, etc)
+        import.sh (a script to copy the files from original location, convert to corpusfile.txt, convert audio to 16kHz wav)
+        wav/
+    scripts/
+        convertAbairXmlToCorpusfile.py
+        convertComhraHtmlToCorpusfile.py
+        convertTextToCorpusfile.py
+        getTranscriptionForCorpusfile.py
+        ...
+    lexicon.txt (all words in all */corpusfile.txt, use to add transcriptions before using ltsrules)

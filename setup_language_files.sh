@@ -1,8 +1,6 @@
 
 #Read xml files, print lexicon.txt, nonsilence_phones.txt, silence_phones.txt and optional_silence.txt
 
-#Doesn't work well for the alphabet files 
-
 #name=irish_new_test
 name=$1
 
