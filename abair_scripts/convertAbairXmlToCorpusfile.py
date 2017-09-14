@@ -20,7 +20,7 @@ print("Reading xml from directory: %s" % xmldir)
 print("Writing corpusfile in: %s" % corpusfile)
 
 for xmlfile in glob.glob("%s/*.xml" % xmldir):
-    print("xmlfile: %s" % xmlfile)
+    #print("xmlfile: %s" % xmlfile)
     
     #get text and transcription from each word in xml
     #if there is an original_transcription attribute, use that,
@@ -36,7 +36,11 @@ for xmlfile in glob.glob("%s/*.xml" % xmldir):
         if re.match(u"^[a-záéíóúA-ZÁÉÍÓÚ0-9'|-]+$", orth):
             text.append(orth)
             if "original_transcription" in word.attrib:
-                trans.append(word.attrib["original_transcription"])
+                word_trans = word.attrib["original_transcription"]
+                word_trans = re.sub("[012.]", "", word_trans)
+                word_trans = re.sub(" +", " ", word_trans)
+                word_trans = word_trans.strip()
+                trans.append(word_trans)
             else:
                 wordtrans = []
                 for phn in word.findall(".//phoneme"):
@@ -48,8 +52,10 @@ for xmlfile in glob.glob("%s/*.xml" % xmldir):
     wavfile = "%s/%s.wav" % (wavdir,xmlfilebase)
     output_text = " ".join(text)
     output_trans = " # ".join(trans)
-    
-    outfh.write(u"%s\t%s\t%s\t%s\t%s\n" % (fileid, speaker, wavfile, output_text, output_trans))
+
+    if "" in trans:
+        print("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (xmlfile, output_text, output_trans)) 
+    else:
+        outfh.write(u"%s\t%s\t%s\t%s\t%s\n" % (fileid, speaker, wavfile, output_text, output_trans))
 
     #sys.exit(1)
-
