@@ -32,9 +32,21 @@ for xmlfile in glob.glob("%s/*.xml" % xmldir):
     text = []
     trans = []
     for word in root.findall(".//word"):
-        orth = word.attrib["input_string"]
-        if re.match(u"^[a-záéíóúA-ZÁÉÍÓÚ0-9'|-]+$", orth):
-            text.append(orth)
+        try:
+            orth = word.attrib["input_string"]
+        except KeyError:
+            try:
+                orth = word.attrib["string"]
+            except KeyError:
+                ET.dump(word)
+                print("ERROR: no 'input_string' or 'string' found")
+                sys.exit(1)
+        #| occurs sometimes as joiner for multiword units,
+        #but shouldn't be allowed as a word by itself
+        #also - and '
+        #if re.match(u"^[a-záéíóúA-ZÁÉÍÓÚ0-9'|-]+$", orth):
+        if re.match(u"^[a-záéíóúA-ZÁÉÍÓÚ0-9]+(['|-][a-záéíóúA-ZÁÉÍÓÚ0-9'-]+)?$", orth):
+            text.append(orth.lower())
             if "original_transcription" in word.attrib:
                 word_trans = word.attrib["original_transcription"]
                 word_trans = re.sub("[012.]", "", word_trans)

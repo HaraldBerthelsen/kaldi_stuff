@@ -24,8 +24,8 @@ split_method = "random_percentage" #random_percentage, random_number, corpusfile
 test_percentage = 2
 silence_phones = [("!SIL","sil"), ("<UNK>","spn")]
 
-exit_on_first_error = True
-exit_on_file_error = True
+exit_on_first_error = False
+exit_on_file_error = False
 
 kaldi_corpus_file="data/local/corpus.txt"
 kaldi_lexicon_file="data/local/dict/lexicon.txt"
