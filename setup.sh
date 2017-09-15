@@ -1,15 +1,22 @@
 #name=irish_new_test
 #audio=/home/harald/git/kaldi/egs/irish_alphabet/audio
 
-name=irish_named_entities_test
-audio=/home/harald/named_entities_3_dialects/
+#name=irish_named_entities_test
+#audio=/home/harald/named_entities_3_dialects/
+
+name=irish_test_15sep
+corpusfiles=/media/Data/RecognitionData/data/*/corpusfile.txt
 
 rm -rf ../kaldi/egs/$name
 
 #Assumes $audio/(train|test)/<speaker>/<wav|xml>/<files>
-bash setup_data.sh $name $audio
+#bash setup_data.sh $name $audio
 #Assumes $audio/(train|test)/<speaker>/xml/<xmlfiles>
-bash setup_language_files.sh $name $audio
+#bash setup_language_files.sh $name $audio
+
+#Assumes corpusfiles!
+python makeKaldiFiles.py $name $corpusfiles
+
 cp -r scripts/* ../kaldi/egs/$name/
 cp -r conf ../kaldi/egs/$name/
 
@@ -32,12 +39,12 @@ if ! bash utils/validate_data_dir.sh --no-feats data/test; then
 fi
 
 
-if ! bash run.sh; then
-   exit 1
-fi
+# if ! bash run.sh; then
+#    exit 1
+# fi
 
-if ! bash nnet2_simple/run_nnet2_simple.sh; then
-   exit 1
-fi
+# if ! bash nnet2_simple/run_nnet2_simple.sh; then
+#    exit 1
+# fi
 
 

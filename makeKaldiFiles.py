@@ -19,7 +19,7 @@ import sys, os, io, re, wave, random
 #TODO allow setting these with command line options
 
 kaldi_base = "/home/harald/git/kaldi/egs"
-spk2gender_file = "./spk2gender"
+spk2gender_file = "/media/Data/RecognitionData/data/spk2gender"
 split_method = "random_percentage" #random_percentage, random_number, corpusfile, speaker, list ..
 test_percentage = 2
 silence_phones = [("!SIL","sil"), ("<UNK>","spn")]
