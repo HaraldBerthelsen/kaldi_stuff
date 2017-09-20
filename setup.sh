@@ -5,7 +5,7 @@
 #audio=/home/harald/named_entities_3_dialects/
 
 name=irish_test_15sep
-corpusfiles=/media/Data/RecognitionData/data/*/corpusfile.txt
+corpusfiles=/media/Data/RecognitionData/data/nnc_corpas_beag/corpusfile.txt
 
 rm -rf ../kaldi/egs/$name
 
