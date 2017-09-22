@@ -138,7 +138,7 @@ for xmlfile in glob.glob("%s/*.xml" % xmldir):
         if len(tokens) == 0:
             continue
         for tok in tokens:
-            if tok.text and tok.text != "xxx" and re.match("[a-záéíóúA-ZÁÉÍÓÚ]+", tok.text):
+            if tok.text and tok.text != "xxx" and re.match("^[a-záéíóúA-ZÁÉÍÓÚ]+$", tok.text):
                 words.append(tok.text)
         if len(words) == 0:
             continue
