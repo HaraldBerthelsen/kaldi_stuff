@@ -1,7 +1,11 @@
 #-*- coding: utf-8 -*-
 
 import sys, glob, os.path, io, re
+import logging
 import xml.etree.ElementTree as ET
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 if len(sys.argv) == 5:
     speaker = sys.argv[1]
@@ -16,11 +20,14 @@ else:
 outfh = io.open(corpusfile,"w",encoding="utf-8")
 
 
-print("Reading xml from directory: %s" % xmldir)
-print("Writing corpusfile in: %s" % corpusfile)
+logger.info("Reading xml from directory: %s" % xmldir)
+logger.info("Writing corpusfile in: %s" % corpusfile)
 
-for xmlfile in glob.glob("%s/*.xml" % xmldir):
-    #print("xmlfile: %s" % xmlfile)
+xmlfiles = glob.glob("%s/*.xml" % xmldir
+xmlfiles.sort()
+
+for xmlfile in xmlfiles):
+    logger.info("xmlfile: %s" % xmlfile)
     
     #get text and transcription from each word in xml
     #if there is an original_transcription attribute, use that,
@@ -39,7 +46,7 @@ for xmlfile in glob.glob("%s/*.xml" % xmldir):
                 orth = word.attrib["string"]
             except KeyError:
                 ET.dump(word)
-                print("ERROR: no 'input_string' or 'string' found")
+                logger.error("ERROR: no 'input_string' or 'string' found")
                 sys.exit(1)
         #| occurs sometimes as joiner for multiword units,
         #but shouldn't be allowed as a word by itself
@@ -66,7 +73,7 @@ for xmlfile in glob.glob("%s/*.xml" % xmldir):
     output_trans = " # ".join(trans)
 
     if "" in trans:
-        print("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (xmlfile, output_text, output_trans)) 
+        logger.warning("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (xmlfile, output_text, output_trans)) 
     else:
         outfh.write(u"%s\t%s\t%s\t%s\t%s\n" % (fileid, speaker, wavfile, output_text, output_trans))
 

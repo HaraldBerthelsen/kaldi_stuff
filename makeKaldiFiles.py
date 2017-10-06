@@ -258,9 +258,11 @@ def writeKaldiLanguageFiles(expdir):
 
     fh = io.open(path_to_kaldi_lexicon_file,"w",encoding="utf-8")  
 
+    ##First write the silences to lexicon file
     for (w,t) in silence_phones:
         fh.write(u"%s %s\n" % (w,t))
 
+    ##Then write each word to lexicon file
     counter = len(silence_phones)
     for word in sorted(kaldi_lexicon.keys()):
         for trans in kaldi_lexicon[word]["trans"]:
