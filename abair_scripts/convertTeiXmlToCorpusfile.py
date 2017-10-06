@@ -22,6 +22,10 @@ else:
 def getTrans(dialect,text):
     if dialect == "connacht":
         serverdialect = "ga_CM"            
+    elif dialect == "uncertain":
+        serverdialect = "ga_CM"            
+    elif dialect == "?":
+        serverdialect = "ga_CM"            
     else:
         logger.error("ERROR: no way implemented of getting transcription for \"%s\" accent" % accent)
         sys.exit(1)
@@ -129,8 +133,12 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
         logger.info("%s\t%s" % (speaker, speakers[speaker]))
         #create corpusfile
         speaker_name = speakers[speaker]["name"]
-        corpusfile = "%s/%s/corpusfile.txt" % (corpus_base,speaker_name)
+        corpusdir = "%s/%s" % (corpus_base,speaker_name)
+        corpusfile = "%s/corpusfile.txt" % corpusdir
         logger.debug("Creating corpusfile %s" % corpusfile)
+        if not os.path.exists(corpusdir):
+            logger.info("NOTE: corpus dir %s not found, creating it." % corpusdir)
+            os.makedirs(corpusdir)
         outfh = io.open(corpusfile,"w",encoding="utf-8")
         outfh.close()
 
@@ -154,6 +162,10 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
         start = float(u.attrib["start"])
         end = float(u.attrib["end"])
         uid = int(u.attrib["id"].replace("u-",""))
+
+        #skip overlapping speech
+        if "Overlap" in who:
+            continue
 
         speaker_name = speakers[who]["name"]
 
