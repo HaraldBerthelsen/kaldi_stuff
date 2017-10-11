@@ -63,7 +63,7 @@ def getTrans(dialect,text):
     #punctuation but not ,' or -
     lastitem = json.loads(jsonitems[-1])
     #lastitem = jsonitems[-1]
-    if re.search("[^.?!:-]$", text) and lastitem["Item"]["Type"] == "Punctuation":
+    if re.search("[^,.?!:-]$", text) and lastitem["Item"]["Type"] == "Punctuation":
         logger.debug("Text does not end with punctuation: \"%s\", but last jsonitem is %s. Last jsonitem removed!" % (text, lastitem))
         jsonitems = jsonitems[0:-1]
 
