@@ -23,10 +23,10 @@ outfh = io.open(corpusfile,"w",encoding="utf-8")
 logger.info("Reading xml from directory: %s" % xmldir)
 logger.info("Writing corpusfile in: %s" % corpusfile)
 
-xmlfiles = glob.glob("%s/*.xml" % xmldir
+xmlfiles = glob.glob("%s/*.xml" % xmldir)
 xmlfiles.sort()
 
-for xmlfile in xmlfiles):
+for xmlfile in xmlfiles:
     logger.info("xmlfile: %s" % xmlfile)
     
     #get text and transcription from each word in xml
