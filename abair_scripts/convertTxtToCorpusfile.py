@@ -6,16 +6,17 @@ import xml.etree.ElementTree as ET
 
 #Suppress annoying info message from urllib3
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-if len(sys.argv) == 3:
-    text_dir = sys.argv[1]
-    corpus_base = sys.argv[2]
+if len(sys.argv) >= 4:
+    corpus_base = sys.argv[1]
+    audiodir = sys.argv[2]
+    txtfiles = sys.argv[3:]
 else:
-    print("USAGE: python convertTxtToCorpusfile.py <text_dir> <corpus_base>")
-    print("Example: python scripts/abair_scripts/convertTxtToCorpusfile.py ~/svn/Corpora/ga_UL/seanchas_rann_na_feirste/corpus /media/Data/RecognitionData/data")
+    print("USAGE: python convertTxtToCorpusfile.py <corpus_base> <audio_dir> <txtfile>")
+    print("Example: python ../../scripts/abair_scripts/convertTxtToCorpusfile.py . ../../audio/fdbmrf_seanchas_rann_na_feirste/wav /var/phonetics/svn/Corpora/ga_UL/seanchas_rann_na_feirste/corpus/txt/*_fdbmrf_[0-9]*.txt")
     sys.exit(1)
 
 
@@ -90,7 +91,7 @@ def getTrans(dialect,text):
         i += 1
     return trans
 
-txtfiles = glob.glob("%s/txt/*.txt" % text_dir)
+#txtfiles = glob.glob("%s/txt/*.txt" % text_dir)
 txtfiles.sort()
 
 for txtfile in txtfiles:
@@ -101,7 +102,7 @@ for txtfile in txtfiles:
 
 
     #make sure wavfile is there
-    wavfilename = "%s/wav/%s.wav" % (text_dir, basename)
+    wavfilename = "%s/wav/%s.wav" % (os.path.dirname(os.path.dirname(txtfile)), basename)
     if not os.path.isfile(wavfilename):
         logger.error("ERROR: wavfile %s is missing" % wavfilename)
         sys.exit(1)
@@ -109,7 +110,7 @@ for txtfile in txtfiles:
         logger.info("wavfile: %s" % wavfilename)
 
     #find speaker names and add to spk2gender file
-    spk2gender_file = "%s/spk2gender" % corpus_base
+    spk2gender_file = "%s/../spk2gender" % corpus_base
     spk2gender = {}
     try:
         spk2gender_fh = io.open(spk2gender_file,"r",encoding="utf-8")
@@ -127,16 +128,20 @@ for txtfile in txtfiles:
 
 
     #create corpusfile
-    corpusprefix = "seanchas_rann_na_feirste"
-    speaker_name =  "%s_%s" % (corpusprefix, speaker)
-    corpusdir = "%s/%s" % (corpus_base,speaker_name)
-    corpusfile = "%s/corpusfile.txt" % corpusdir
+    #corpusprefix = "seanchas_rann_na_feirste"
+    #speaker_name =  "%s_%s" % (corpusprefix, speaker)
+    #corpusdir = "%s/%s" % (corpus_base,speaker_name)
+    #corpusfile = "%s/corpusfile.txt" % corpusdir
+    #if not os.path.exists(corpusdir):
+    #    logger.info("NOTE: corpus dir %s not found, creating it." % corpusdir)
+    #    os.makedirs(corpusdir)
+    #    outfh = io.open(corpusfile,"w",encoding="utf-8")
+    #    outfh.close()
 
-    if not os.path.exists(corpusdir):
-        logger.info("NOTE: corpus dir %s not found, creating it." % corpusdir)
-        os.makedirs(corpusdir)
-        outfh = io.open(corpusfile,"w",encoding="utf-8")
-        outfh.close()
+    corpusprefix = "seanchas_rann_na_feirste"
+    speaker_name =  "%s_%s" % (speaker, corpusprefix)
+
+    corpusfile = "%s/corpusfile.txt" % corpus_base
 
     #check if speaker is in spk2gender
     if speaker not in spk2gender:
@@ -178,7 +183,7 @@ for txtfile in txtfiles:
 
     outfh = io.open(corpusfile,"a",encoding="utf-8")
 
-    wavfile = "wav/%s.wav" % basename
+    wavfile = "%s/%s.wav" % (audiodir, basename)
     output_text = " ".join(text)
     output_trans = " # ".join(transcription)
         
