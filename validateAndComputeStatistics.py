@@ -12,14 +12,20 @@ from datetime import timedelta, datetime
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-#print_all = False
+print_all = False
 #print_speaker = False
 #print_total = False
-print_all = True
+#print_all = True
 print_speaker = True
 print_total = True
 
+#Exit immediately on first error
 exit_on_error = False
+
+
+datadir_base = "data"
+audiodir_base = "audio"
+
 
 def validateDirectory(dirname):
     datadir = "%s/%s" % (datadir_base, dirname)
@@ -38,8 +44,9 @@ def validateDirectory(dirname):
 
     corpusfile = "%s/corpusfile.txt" % datadir
     if not os.path.isfile(corpusfile):
-        logger.error("Corpusfile %s does not exist" % corpusfile)
-        return
+        msg = "Corpusfile %s does not exist" % corpusfile
+        logger.error(msg)
+        raise Exception(msg)
 
     logger.info("Corpusfile: %s" % corpusfile)
     corpusfile_fh = io.open(corpusfile,"r",encoding="utf-8")
@@ -50,8 +57,9 @@ def validateDirectory(dirname):
         #fileid format check?
         #check speaker is in spk2gender
         if not speaker in spk2gender:
-            logger.error("Speaker %s not in %s" % (speaker, spk2gender_file))
-            return
+            msg = "Speaker %s not in %s" % (speaker, spk2gender_file)
+            logger.error(msg)
+            raise Exception(msg)
             
         gender = spk2gender[speaker]
 
@@ -69,8 +77,9 @@ def validateDirectory(dirname):
         channels = wav.getnchannels()
         rate = wav.getframerate()
         if channels != 1 or rate != 16000:
-            logger.error("Wrong format of %s! channels: %d, rate: %d" % (relative_wavfile, channels, rate))
-            continue
+            msg = "Wrong format of %s! channels: %d, rate: %d" % (relative_wavfile, channels, rate)
+            logger.error(msg)
+            raise Exception(msg)
         #get length of wavfile
         wav_length = wav.getnframes()/(rate*1.0)
         #logger.info("Wav %s length: %.2f s" % (relative_wavfile, wav_length))
@@ -80,8 +89,9 @@ def validateDirectory(dirname):
         text_list = text.split(" ")
         transcription_list = transcription.split(" # ")
         if not len(text_list) == len(transcription_list):
-            logger.error("Text and transcription not equal length!Text: %d, trans: %s\nText:  %s\nTrans: %s" % (len(text_list), len(transcription_list), text, transcription))
-            continue
+            msg = "Text and transcription not equal length!Text: %d, trans: %s\nText:  %s\nTrans: %s" % (len(text_list), len(transcription_list), text, transcription)
+            logger.error(msg)
+            raise Exception
 
         #check text format?
         #check transcription format?
@@ -92,8 +102,6 @@ def validateDirectory(dirname):
             nsegments += len(t.split(" "))
         #save statistics
         stats[fileid] = (fileid, speaker, gender, dialect, age, wav_length, nwords, nsegments)
-        #print("%s\t%s\t%s\t%s\t%s\t%.2f\t%d\t%d" % stats[fileid])
-        #sys.exit()
 
 
 
@@ -103,8 +111,7 @@ def validateDirectory(dirname):
 
 
 
-datadir_base = "data"
-audiodir_base = "audio"
+
 
 spk2gender_file = "%s/spk2gender" % datadir_base
 spk2gender_fh = io.open(spk2gender_file,"r",encoding="utf-8")
