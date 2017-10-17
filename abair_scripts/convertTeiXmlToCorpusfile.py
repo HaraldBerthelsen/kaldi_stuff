@@ -6,29 +6,40 @@ import xml.etree.ElementTree as ET
 
 #Suppress annoying info message from urllib3
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-if len(sys.argv) == 3:
+#Only needs to be done if timings have changed, or on the first run!
+cut_wavfile = True
+
+if len(sys.argv) == 4:
     teitok_dir = sys.argv[1]
     corpus_base = sys.argv[2]
+    audio_base = sys.argv[3]
 else:
-    print("USAGE: python convertTeiXmlToCorpusfile.py <teitok_dir> <corpus_base>")
-    print("Example: python scripts/abair_scripts/convertTeiXmlToCorpusfile.py teitok_comhra_test data")
+    print("USAGE: python convertTeiXmlToCorpusfile.py <teitok_dir> <corpus_base> <audio_base>")
+    print("Example: python scripts/abair_scripts/convertTeiXmlToCorpusfile.py teitok_comhra_test data audio")
     sys.exit(1)
 
 
 def getTrans(dialect,text):
     if dialect == "connacht":
         serverdialect = "ga_CM"            
+    elif dialect == "ros muc":
+        serverdialect = "ga_CM"            
+    elif dialect == "kerry":
+        serverdialect = "ga_MU"            
+    elif dialect == "ulster":
+        serverdialect = "ga_GD"            
     elif dialect == "uncertain":
         serverdialect = "ga_CM"            
     elif dialect == "?":
         serverdialect = "ga_CM"            
     else:
         logger.error("ERROR: no way implemented of getting transcription for \"%s\" accent" % accent)
-        sys.exit(1)
+        serverdialect = "ga_CM"            
+        #sys.exit(1)
 
 
     logger.info("Transcribing: %s" % text)
@@ -92,8 +103,9 @@ def getTrans(dialect,text):
         i += 1
     return trans
 
-
-for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
+xmlfiles = glob.glob("%s/xml/*.xml" % teitok_dir)
+xmlfiles.sort()
+for xmlfile in xmlfiles:
     logger.info("Reading tei xml file: %s" % xmlfile)
     basename = os.path.splitext(os.path.basename(xmlfile))[0]
     logger.info("basename: %s" % basename)
@@ -101,7 +113,7 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
 
 
     #make sure wavfile is there
-    wavfilename = "%s/%s.wav" % (teitok_dir, basename)
+    wavfilename = "%s/wav/%s.wav" % (teitok_dir, basename)
     if not os.path.isfile(wavfilename):
         logger.error("ERROR: wavfile %s is missing" % wavfilename)
         sys.exit(1)
@@ -117,17 +129,23 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
     for person in root.findall(".//person"):
         speaker_id = person.attrib["id"]
         output_speaker_id = "%s_%s" % (basename, speaker_id)
-        accent = person.findall("accent")[0].text.lower()
+        try:
+            accent = person.findall("accent")[0].text.lower()
+        except:
+            accent = "?"
         gender = person.findall("gender")[0].text.lower()
         speakers[speaker_id] = {"name":output_speaker_id,"accent":accent, "gender":gender}
 
-    spk2gender_file = "%s/spk2gender" % corpus_base
-    spk2gender_fh = io.open(spk2gender_file,"r",encoding="utf-8")
     spk2gender = {}
-    for line in spk2gender_fh.readlines():
-        (spk,gender) = line.strip().split("\t")
-        spk2gender[spk] = gender
-    spk2gender_fh.close()
+    spk2gender_file = "%s/spk2gender" % corpus_base
+    try:
+        spk2gender_fh = io.open(spk2gender_file,"r",encoding="utf-8")
+        for line in spk2gender_fh.readlines():
+            (spk,gender) = line.strip().split("\t")
+            spk2gender[spk] = gender
+        spk2gender_fh.close()
+    except:
+        logger.info("spk2gender file %s not found, creating it" % spk2gender_file)
 
     for speaker in speakers:
         logger.info("%s\t%s" % (speaker, speakers[speaker]))
@@ -139,6 +157,7 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
         if not os.path.exists(corpusdir):
             logger.info("NOTE: corpus dir %s not found, creating it." % corpusdir)
             os.makedirs(corpusdir)
+        #empty existing corpusfile
         outfh = io.open(corpusfile,"w",encoding="utf-8")
         outfh.close()
 
@@ -161,7 +180,7 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
         who = u.attrib["who"]
         start = float(u.attrib["start"])
         end = float(u.attrib["end"])
-        uid = int(u.attrib["id"].replace("u-",""))
+        uid = int(re.sub(r"u-?",r"", u.attrib["id"]))
 
         #skip overlapping speech
         if "Overlap" in who:
@@ -190,24 +209,27 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
         
 
     #cut wavfile
-    for textid in texts.keys():
-        spkr = texts[textid]["name"]
-        start = texts[textid]["start"]
-        end = texts[textid]["end"]
-        text = texts[textid]["text"]
-        logger.info(u"%s\t%s\t%s\t%s\t%s" % (spkr,textid,start,end," ".join(text)))
+    if cut_wavfile:
+        for textid in sorted(texts.keys()):
+            spkr = texts[textid]["name"]
+            start = texts[textid]["start"]
+            end = texts[textid]["end"]
+            text = texts[textid]["text"]
+            logger.info(u"%s\t%s\t%s\t%s\t%s" % (spkr,textid,start,end," ".join(text)))
 
-        corpuswavdir = "%s/%s/wav" % (corpus_base,speaker_name)
+            speaker_name = speakers[spkr]["name"]
+            corpuswavdir = "%s/%s/wav" % (audio_base,speaker_name)
 
-        if not os.path.exists(corpuswavdir):
-            logger.info("NOTE: wav dir %s not found, creating it." % corpuswavdir)
-            os.makedirs(corpuswavdir)
+            if not os.path.exists(corpuswavdir):
+                logger.info("NOTE: wav dir %s not found, creating it." % corpuswavdir)
+                os.makedirs(corpuswavdir)
 
-        new_wavfile = "%s/%s.wav" % (corpuswavdir,textid)
+            new_wavfile = "%s/%s.wav" % (corpuswavdir,textid)
 
-        sox_command = "sox %s -r 16000 %s trim %f %f" % (wavfilename, new_wavfile, start, end-start)
-        logger.info(sox_command)
-        #os.system(sox_command)
+            sox_command = "sox %s -r 16000 -c 1 %s trim %f %f" % (wavfilename, new_wavfile, start, end-start)
+            logger.info(sox_command)
+            os.system(sox_command)
+            #sys.exit()
         
     #add transcription
     for textid in texts.keys():
@@ -224,7 +246,7 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
         if len(text) != len(transcription):
             logger.error("ERROR: text and trans are not equal length (%d, %d)\n%s\n%s" % (len(text),len(transcription)," ".join(text)," # ".join(transcription)))
             i = 0
-            while i < len(text):
+            while i < len(text) and i < len(transcription):
                 print("%s\t%s" % (text[i], transcription[i]))
                 i += 1
                 
@@ -249,7 +271,7 @@ for xmlfile in glob.glob("%s/*.xml" % teitok_dir):
 
         outfh = io.open(corpusfile,"a",encoding="utf-8")
 
-        wavfile = "wav/%s.wav" % textid
+        wavfile = "../../%s/%s/wav/%s.wav" % (audio_base,speaker_name,textid)
         output_text = " ".join(text)
         output_trans = " # ".join(trans)
         

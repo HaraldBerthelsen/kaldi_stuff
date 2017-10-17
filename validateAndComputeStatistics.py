@@ -9,7 +9,7 @@
 import sys, os, logging, io, wave
 from datetime import timedelta, datetime
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 print_all = False
@@ -105,8 +105,14 @@ def validateDirectory(dirname):
 
 
 
-
-
+def convertTime(s):
+    h = 0
+    m = 0
+    if s > 59:
+        (m, s) = divmod(s,60)
+    if m > 59:
+        (h, m) = divmod(m,60)
+    return (h,m,s)
 
 
 
@@ -161,16 +167,13 @@ for speaker in sorted(total_by_speaker.keys()):
     wav_length = total_by_speaker[speaker][0]
     nwords = total_by_speaker[speaker][1]
     nsegments = total_by_speaker[speaker][2]
+    (h, m, s) = convertTime(wav_length)
     if print_speaker:
-        t = timedelta(seconds=wav_length)
-        d = datetime(1,1,1) + t
-        #print("%s\t%.2f\t%d\t%d" % (speaker, wav_length, nwords, nsegments))
-        print("%s\t%10.2f\t(%d h, %d min, %d s)\t%d\t%d" % (speaker, wav_length, d.hour, d.minute, d.second, nwords, nsegments))
+        print("%s\t%10.2f\t(%d h, %d min, %d s)\t%d\t%d" % (speaker, wav_length, h, m, s, nwords, nsegments))
 
 wav_length = total[0]
 nwords = total[1]
 nsegments = total[2]
+(h, m, s) = convertTime(wav_length)
 if print_total:
-    t = timedelta(seconds=wav_length)
-    d = datetime(1,1,1) + t
-    print("TOTAL:\t%10.2f\t(%d h, %d min, %d s)\t%d\t%d" % (wav_length, d.hour, d.minute, d.second, nwords, nsegments))
+    print("TOTAL:\t%10.2f\t(%d h, %d min, %d s)\t%d\t%d" % (wav_length, h, m, s, nwords, nsegments))
