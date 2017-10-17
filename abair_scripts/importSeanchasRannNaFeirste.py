@@ -53,7 +53,7 @@ import script: import.sh
 #mkdir -p ../../%s/wav
 #cp %s ../../%s/wav
 
-python ../../scripts/abair_scripts/convertTxtToCorpusfile.py . ../../%s %s
+python ../../scripts/abair_scripts/convertTxtToCorpusfile.py . ../../%s/wav %s
 """ % (speakeraudiodir,"%s/wav/*_%s_[0-9]*.wav" % (svndir,speaker), speakeraudiodir, speakeraudiodir, "%s/txt/*_%s_[0-9]*.txt" % (svndir, speaker))
 
     #print(readmetxt)
@@ -77,6 +77,6 @@ python ../../scripts/abair_scripts/convertTxtToCorpusfile.py . ../../%s %s
 
     owd = os.getcwd()
     os.chdir(speakerdatadir)
-    os.system("sh import.sh")
+    os.system("rm corpusfile.txt; sh import.sh")
     os.chdir(owd)
     #sys.exit()

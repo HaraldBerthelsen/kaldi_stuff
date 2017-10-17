@@ -58,12 +58,14 @@ def getTrans(dialect,text):
             tmp.append(item)
     jsonitems = tmp
 
+
+
+
     ############################
 
     #The server always sends . even if it's not in the input
     #punctuation but not ,' or -
     lastitem = json.loads(jsonitems[-1])
-    #lastitem = jsonitems[-1]
     if re.search("[^,.?!:-]$", text) and lastitem["Item"]["Type"] == "Punctuation":
         logger.debug("Text does not end with punctuation: \"%s\", but last jsonitem is %s. Last jsonitem removed!" % (text, lastitem))
         jsonitems = jsonitems[0:-1]
@@ -76,8 +78,9 @@ def getTrans(dialect,text):
     trans = []
     while i < len(jsonitems):
         jsonitem = jsonitems[i]
+        i += 1
 
-        if jsonitem == "":
+        if jsonitem == u"":
             continue
 
         #print("JSON ITEM: %s" % jsonitem)
@@ -85,10 +88,17 @@ def getTrans(dialect,text):
         #item = jsonitem
         #print("ITEM: %s" % item)
 
+        #remove all punctuation items! No.. only if the word token ends with punctuation symbol, not if the symbol is a token on it's own..
+        #what's the right way??
+        #TODO !
+
+        #if item["Item"]["Type"] != "Punctuation":
         orth = item['Item']['Word']
         transcription = item['Item']['Transcription']
+        if transcription == u"":
+            continue
         trans.append(transcription)
-        i += 1
+        #endif
     return trans
 
 #txtfiles = glob.glob("%s/txt/*.txt" % text_dir)
@@ -139,7 +149,8 @@ for txtfile in txtfiles:
     #    outfh.close()
 
     corpusprefix = "seanchas_rann_na_feirste"
-    speaker_name =  "%s_%s" % (speaker, corpusprefix)
+    #speaker_name =  "%s_%s" % (speaker, corpusprefix)
+    speaker_name =  speaker
 
     corpusfile = "%s/corpusfile.txt" % corpus_base
 
@@ -172,7 +183,7 @@ for txtfile in txtfiles:
     if len(text) != len(transcription):
         logger.error("ERROR: text and trans are not equal length (%d, %d)\n%s\n%s" % (len(text),len(transcription)," ".join(text)," # ".join(transcription)))
         i = 0
-        while i < len(text):
+        while i < len(text) and i < len(transcription):
             print("%s\t%s" % (text[i], transcription[i]))
             i += 1
         continue
