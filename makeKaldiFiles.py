@@ -19,12 +19,12 @@ import sys, os, io, re, wave, random
 #TODO allow setting these with command line options
 
 kaldi_base = "/home/harald/git/kaldi/egs"
-spk2gender_file = "/media/Data/RecognitionData/data/spk2gender"
+spk2gender_file = "data/spk2gender"
 split_method = "random_percentage" #random_percentage, random_number, corpusfile, speaker, list ..
 test_percentage = 2
 silence_phones = [("!SIL","sil"), ("<UNK>","spn")]
 
-exit_on_first_error = False
+exit_on_first_error = True
 exit_on_file_error = False
 
 kaldi_corpus_file="data/local/corpus.txt"
@@ -97,7 +97,7 @@ def validate_spk2gender_file(spk2gender_file):
    for line in lines:
        line = line.strip()
        linenr += 1
-       regexp = "^([a-z_]+)\t([mf])$"
+       regexp = "^([a-z0-9_]+)\t([mf])$"
        m = re.match(regexp, line)
        if m:
            spk2gender_dict[m.group(1)] = m.group(2)
@@ -110,76 +110,105 @@ def validate_spk2gender_file(spk2gender_file):
            
  
 def validate_corpusfile(corpusfile):
-   fh = io.open(corpusfile,"r",encoding="utf-8")
-   lines = fh.readlines()
-   linenr = 0
-   ok = True
-   for line in lines:
-       line = line.strip()
-       linenr += 1
+    fh = io.open(corpusfile,"r",encoding="utf-8")
+    lines = fh.readlines()
+    linenr = 0
+    ok = True
+    for line in lines:
+        line = line.strip()
+        linenr += 1
 
-       #definition of fields
-       speaker_re = u"[a-z]+"
-       fileid_re = u"%s_[a-zA-Z0-9_-]+" % speaker_re
-       wavfile_re = u"[a-zA-Z0-9_/-]+.wav"
-       text_re = u"[a-záéíóú0-9 '|-]+"
-       trans_re = u"[a-z@# _]+"
+        #definition of fields
+        speaker_re = u"[a-z0-9]+"
+        #Don't allow fileids that don't start with speaker name
+        #fileid_re = u"%s_[a-zA-Z0-9_-]+" % speaker_re
+        #Allow fileids that don't start with speaker name
+        fileid_re = u".*%s_[a-zA-Z0-9_-]+" % speaker_re
+        wavfile_re = u"[a-zA-Z0-9_/.-]+.wav"
+        text_re = u"[a-záéíóú0-9 '|-]+"
+        trans_re = u"[a-z@# _]+"
+        
+        #regexp = "^(%s)\t(%s)\t(%s)\t(%s)\t(%s)$" % (fileid_re,speaker_re,wavfile_re,text_re,trans_re)
+        #m = re.match(regexp, line)
+        #if not m:
+        #    print(u"Error in %s line %d (doesn't match regexp \"%s\": %s" % (corpusfile, linenr, regexp, line))
+        #    ok = False
+       
+        try:    
+            (fileid,speaker,wavfile,text,trans) = line.split("\t")
+        except:
+            ok = False
+            print("Error in line %s" % line)
 
-       regexp = "^(%s)\t(%s)\t(%s)\t(%s)\t(%s)$" % (fileid_re,speaker_re,wavfile_re,text_re,trans_re)
-       m = re.match(regexp, line)
-       if not m:
-           print(u"Error in %s line %d (doesn't match regexp \"%s\": %s" % (corpusfile, linenr, regexp, line))
-           ok = False
-           if exit_on_first_error:
-               sys.exit(1)
-       else:
-           fileid = m.group(1)
-           #check that speaker is in spk2gender file
-           speaker = m.group(2)
-           if speaker not in spk2gender_dict:
-               print("ERROR: speaker %s is not in spk2gender file %s" % (speaker, spk2gender_file))
-               ok = False
-               if exit_on_first_error:
-                   sys.exit(1)
+
+        if not re.match(fileid_re,fileid):
+            ok = False
+            print("Error in fileid %s - regexp %s" % (fileid, fileid_re))
+        if not re.match(speaker_re,speaker):
+            ok = False
+            print("Error in speaker %s - regexp %s" % (speaker, speaker_re))
+        if not re.match(wavfile_re,wavfile):
+            ok = False
+            print("Error in wavfile %s - regexp %s" % (wavfile, wavfile_re))
+        if not re.match(text_re,text):
+            ok = False
+            print("Error in text %s - regexp %s" % (text, text_re))
+        if not re.match(trans_re,trans):
+            ok = False
+            print("Error in trans %s - regexp %s" % (trans, trans_re))
+
+        if not ok and exit_on_first_error:
+            sys.exit(1)
+        else:
+            #fileid = m.group(1)
+            #check that speaker is in spk2gender file
+            #speaker = m.group(2)
+            if speaker not in spk2gender_dict:
+                print("ERROR: speaker %s is not in spk2gender file %s" % (speaker, spk2gender_file))
+                ok = False
+                if exit_on_first_error:
+                    sys.exit(1)
                      
-       #check that wavfile exists and is in right format (16kHz mono)
-           wavfile = m.group(3)
-           corpusdir = os.path.dirname(corpusfile)
-           pathtowavfile = "%s/%s" % (corpusdir, wavfile)
-           if not os.path.isfile(pathtowavfile):
-               print("ERROR: wavfile %s doesn't exist" % (pathtowavfile,))
-               ok = False
-               if exit_on_first_error:
-                   sys.exit(1)
-           else:
-               w = wave.open(pathtowavfile)
-               channels = w.getnchannels()
-               rate = w.getframerate()
-               if channels != 1 or rate != 16000:
-                   print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (pathtowavfile,rate,channels))
-                   ok = False
-                   if exit_on_first_error:
-                       sys.exit(1)
+            #check that wavfile exists and is in right format (16kHz mono)
+            #wavfile = m.group(3)
+            corpusdir = os.path.dirname(corpusfile)
+            pathtowavfile = "%s/%s" % (corpusdir, wavfile)
+            if not os.path.isfile(pathtowavfile):
+                print("ERROR: wavfile %s doesn't exist" % (pathtowavfile,))
+                ok = False
+                if exit_on_first_error:
+                    sys.exit(1)
+            else:
+                w = wave.open(pathtowavfile)
+                channels = w.getnchannels()
+                rate = w.getframerate()
+                if channels != 1 or rate != 16000:
+                    print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (pathtowavfile,rate,channels))
+                    ok = False
+                    if exit_on_first_error:
+                        sys.exit(1)
 
-       #check that text and trans match
-           text = m.group(4).split(" ")
-           trans = m.group(5).split(" # ")
-           if not len(text) == len(trans):
-               print("ERROR: text and transcription are not equal length!\nText  (%d): %s\nTrans (%d): %s" % (len(text), text, len(trans), trans))
-               ok = False
-               if exit_on_first_error:
-                   sys.exit(1)
+            #check that text and trans match
+            #text = m.group(4).split(" ")
+            #trans = m.group(5).split(" # ")
+            text = text.split(" ")
+            trans = trans.split(" # ")
+            if not len(text) == len(trans):
+                print("ERROR: text and transcription are not equal length!\nText  (%d): %s\nTrans (%d): %s" % (len(text), text, len(trans), trans))
+                ok = False
+                if exit_on_first_error:
+                    sys.exit(1)
                
-       if fileid in corpusdict:
-           print("ERROR: fileid is duplicated:\n1: %s %s\n2:%s %s %s %s %s" % (fileid, corpusdict[fileid], fileid, speaker, wavfile, text, trans))
-           ok = False
-           if exit_on_first_error:
-               sys.exit(1)
-       else:
-           path_to_wavfile = "%s/%s" % (os.path.dirname(os.path.abspath(corpusfile)), wavfile)
-           corpusdict[fileid] = (speaker,path_to_wavfile,text,trans)
-           #print("Adding to corpusdict: %s %s" % (fileid,corpusdict[fileid]))
-   return ok
+        if fileid in corpusdict:
+            print("ERROR: fileid is duplicated:\n1: %s %s\n2:%s %s %s %s %s" % (fileid, corpusdict[fileid], fileid, speaker, wavfile, text, trans))
+            ok = False
+            if exit_on_first_error:
+                sys.exit(1)
+        else:
+            path_to_wavfile = "%s/%s" % (os.path.dirname(os.path.abspath(corpusfile)), wavfile)
+            corpusdict[fileid] = (speaker,path_to_wavfile,text,trans)
+            #print("Adding to corpusdict: %s %s" % (fileid,corpusdict[fileid]))
+    return ok
     
 
 def splitTrainTest():

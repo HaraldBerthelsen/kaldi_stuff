@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 #Only needs to be done if timings have changed, or on the first run!
-cut_wavfile = True
+cut_wavfile = False
 
 if len(sys.argv) == 4:
     teitok_dir = sys.argv[1]
@@ -95,6 +95,12 @@ def getTrans(dialect,text):
 
         orth = item['Item']['Word']
         transcription = item['Item']['Transcription']
+
+        #remove accents and syllable boundaries
+        transcription = re.sub("[012.]","",transcription)
+        transcription = re.sub(" +"," ",transcription)
+        transcription = transcription.strip()
+
         trans.append(transcription)
         i += 1
     return trans
@@ -178,7 +184,7 @@ for xmlfile in xmlfiles:
             continue
         for tok in tokens:
             if tok.text and tok.text != "xxx" and re.match("^[a-záéíóúA-ZÁÉÍÓÚ]+$", tok.text):
-                words.append(tok.text)
+                words.append(tok.text.lower())
         if len(words) == 0:
             continue
 
@@ -225,6 +231,7 @@ for xmlfile in xmlfiles:
         logger.debug("Getting transcription for \"%s\" accent" % accent)
         logger.debug("Text: %s" % " ".join(text))
         transcription = getTrans(accent, " ".join(text))
+
         logger.debug("Trans: %s" % transcription)
 
         if len(text) != len(transcription):
@@ -233,7 +240,8 @@ for xmlfile in xmlfiles:
             while i < len(text) and i < len(transcription):
                 print("%s\t%s" % (text[i], transcription[i]))
                 i += 1
-                
+            #sys.exit()
+            texts[textid]["trans"] = []   
         else:
             texts[textid]["trans"] = transcription
 
@@ -275,7 +283,7 @@ for xmlfile in xmlfiles:
             output_text = " ".join(text)
             output_trans = " # ".join(trans)
         
-            if "" in trans:
+            if "" in trans or trans == []:
                 logger.warning("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (xmlfile, output_text, output_trans)) 
             else:
                 corpus_line = u"%s\t%s\t%s\t%s\t%s\n" % (textid, speaker_name, wavfile, output_text, output_trans)
