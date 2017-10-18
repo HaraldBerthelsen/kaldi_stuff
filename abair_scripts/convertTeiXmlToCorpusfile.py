@@ -24,25 +24,21 @@ else:
 
 
 def getTrans(dialect,text):
-    if dialect == "connacht":
+    if dialect in ["connacht", "ros muc"]:
         serverdialect = "ga_CM"            
-    elif dialect == "ros muc":
-        serverdialect = "ga_CM"            
-    elif dialect == "kerry":
+    elif dialect in ["kerry", "munster", "imunster"]:
         serverdialect = "ga_MU"            
-    elif dialect == "ulster":
+    elif dialect in ["ulster"]:
         serverdialect = "ga_GD"            
-    elif dialect == "uncertain":
-        serverdialect = "ga_CM"            
-    elif dialect == "?":
+    elif dialect in ["uncertain", "?"]:
         serverdialect = "ga_CM"            
     else:
-        logger.error("ERROR: no way implemented of getting transcription for \"%s\" accent" % accent)
+        logger.warning("No way implemented of getting transcription for \"%s\" accent, using 'ga_CM'" % accent)
         serverdialect = "ga_CM"            
         #sys.exit(1)
 
 
-    logger.info("Transcribing: %s" % text)
+    logger.debug("Transcribing: %s" % text)
     headers = {"Content-type": "application/json", "Accept": "text/plain", "Connection":"keep-alive"}
     data = {
         "input": text,
@@ -108,7 +104,7 @@ xmlfiles.sort()
 for xmlfile in xmlfiles:
     logger.info("Reading tei xml file: %s" % xmlfile)
     basename = os.path.splitext(os.path.basename(xmlfile))[0]
-    logger.info("basename: %s" % basename)
+    logger.debug("basename: %s" % basename)
 
 
 
@@ -118,7 +114,7 @@ for xmlfile in xmlfiles:
         logger.error("ERROR: wavfile %s is missing" % wavfilename)
         sys.exit(1)
     else:
-        logger.info("wavfile: %s" % wavfilename)
+        logger.debug("wavfile: %s" % wavfilename)
 
     #parse xml
     tree = ET.parse(xmlfile)
@@ -148,19 +144,7 @@ for xmlfile in xmlfiles:
         logger.info("spk2gender file %s not found, creating it" % spk2gender_file)
 
     for speaker in speakers:
-        logger.info("%s\t%s" % (speaker, speakers[speaker]))
-        #create corpusfile
-        speaker_name = speakers[speaker]["name"]
-        corpusdir = "%s/%s" % (corpus_base,speaker_name)
-        corpusfile = "%s/corpusfile.txt" % corpusdir
-        logger.debug("Creating corpusfile %s" % corpusfile)
-        if not os.path.exists(corpusdir):
-            logger.info("NOTE: corpus dir %s not found, creating it." % corpusdir)
-            os.makedirs(corpusdir)
-        #empty existing corpusfile
-        outfh = io.open(corpusfile,"w",encoding="utf-8")
-        outfh.close()
-
+        logger.debug("%s\t%s" % (speaker, speakers[speaker]))
         #check if speaker is in spk2gender
         if speakers[speaker]["name"] not in spk2gender:
             logger.info("NOTE: Adding following line to the spk2gender file:\n%s %s" % (speakers[speaker]["name"], speakers[speaker]["gender"]))
@@ -238,10 +222,10 @@ for xmlfile in xmlfiles:
         trans = texts[textid]["trans"]
 
         accent = speakers[spkr]["accent"]
-        logger.info("Getting transcription for \"%s\" accent" % accent)
-        logger.info("Text: %s" % " ".join(text))
+        logger.debug("Getting transcription for \"%s\" accent" % accent)
+        logger.debug("Text: %s" % " ".join(text))
         transcription = getTrans(accent, " ".join(text))
-        logger.info("Trans: %s" % transcription)
+        logger.debug("Trans: %s" % transcription)
 
         if len(text) != len(transcription):
             logger.error("ERROR: text and trans are not equal length (%d, %d)\n%s\n%s" % (len(text),len(transcription)," ".join(text)," # ".join(transcription)))
@@ -253,33 +237,49 @@ for xmlfile in xmlfiles:
         else:
             texts[textid]["trans"] = transcription
 
-        logger.info("%s\t%s" % (textid, texts[textid]))
-        #sys.exit()
+        logger.debug("%s\t%s" % (textid, texts[textid]))
 
 
-    #write corpusfile
-
+    #sort texts by speaker
+    texts_by_speaker = {}
     for textid in sorted(texts.keys()):
-        spkr = texts[textid]["name"]
-        text = texts[textid]["text"]
-        trans = texts[textid]["trans"]
-
-        speaker_name = speakers[spkr]["name"]
-        corpusfile = "%s/%s/corpusfile.txt" % (corpus_base,speaker_name)
-
-        logger.debug("Writing to corpusfile %s" % corpusfile)
-
-        outfh = io.open(corpusfile,"a",encoding="utf-8")
-
-        wavfile = "../../%s/%s/wav/%s.wav" % (audio_base,speaker_name,textid)
-        output_text = " ".join(text)
-        output_trans = " # ".join(trans)
-        
-        if "" in trans:
-            logger.warning("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (xmlfile, output_text, output_trans)) 
+        speaker = texts[textid]["name"]
+        speaker_name = speakers[speaker]["name"]
+        if speaker_name in texts_by_speaker:
+            texts_by_speaker[speaker_name].append(textid)
         else:
-            corpus_line = u"%s\t%s\t%s\t%s\t%s\n" % (textid, speaker_name, wavfile, output_text, output_trans)
-            logger.debug("Corpus line: %s" % corpus_line)
-            outfh.write(corpus_line)
+            texts_by_speaker[speaker_name] = [textid]
+
+    #write corpusfile for each speaker
+    for speaker_name in sorted(texts_by_speaker.keys()):
+
+        #create corpusfile
+        corpusdir = "%s/%s" % (corpus_base,speaker_name)
+        corpusfile = "%s/corpusfile.txt" % corpusdir
+        logger.debug("Creating corpusfile %s" % corpusfile)
+        if not os.path.exists(corpusdir):
+            logger.info("NOTE: corpus dir %s not found, creating it." % corpusdir)
+            os.makedirs(corpusdir)
+            #empty existing corpusfile
+        outfh = io.open(corpusfile,"w",encoding="utf-8")
+        outfh.close()
+        ##end
+
+        logger.info("Writing to corpusfile %s" % corpusfile)
+        outfh = io.open(corpusfile,"w",encoding="utf-8")
+        for textid in texts_by_speaker[speaker_name]:
+            text = texts[textid]["text"]
+            trans = texts[textid]["trans"]
+
+            wavfile = "../../%s/%s/wav/%s.wav" % (audio_base,speaker_name,textid)
+            output_text = " ".join(text)
+            output_trans = " # ".join(trans)
+        
+            if "" in trans:
+                logger.warning("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (xmlfile, output_text, output_trans)) 
+            else:
+                corpus_line = u"%s\t%s\t%s\t%s\t%s\n" % (textid, speaker_name, wavfile, output_text, output_trans)
+                logger.debug("Corpus line: %s" % corpus_line)
+                outfh.write(corpus_line)
 
         outfh.close()
