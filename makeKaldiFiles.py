@@ -121,9 +121,9 @@ def validate_corpusfile(corpusfile):
         #definition of fields
         speaker_re = u"[a-z0-9]+"
         #Don't allow fileids that don't start with speaker name
-        #fileid_re = u"%s_[a-zA-Z0-9_-]+" % speaker_re
+        fileid_re = u"%s_[a-zA-Z0-9_-]+" % speaker_re
         #Allow fileids that don't start with speaker name
-        fileid_re = u".*%s_[a-zA-Z0-9_-]+" % speaker_re
+        #fileid_re = u".*%s_[a-zA-Z0-9_-]+" % speaker_re
         wavfile_re = u"[a-zA-Z0-9_/.-]+.wav"
         text_re = u"[a-záéíóú0-9 '|-]+"
         trans_re = u"[a-z@# _]+"

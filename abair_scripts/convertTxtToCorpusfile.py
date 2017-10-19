@@ -97,6 +97,12 @@ def getTrans(dialect,text):
         transcription = item['Item']['Transcription']
         if transcription == u"":
             continue
+
+        #remove accents and syllable boundaries
+        transcription = re.sub("[012.]","",transcription)
+        transcription = re.sub(" +"," ",transcription)
+        transcription = transcription.strip()
+
         trans.append(transcription)
         #endif
     return trans
@@ -194,14 +200,19 @@ for txtfile in txtfiles:
 
     outfh = io.open(corpusfile,"a",encoding="utf-8")
 
+    if re.match("^%s_" % (speaker_name,), basename):
+        fileid = basename
+    else:
+        fileid = "%s_%s" % (speaker_name, basename)
+
     wavfile = "%s/%s.wav" % (audiodir, basename)
-    output_text = " ".join(text)
+    output_text = " ".join(text).lower()
     output_trans = " # ".join(transcription)
         
     if "" in transcription:
         logger.warning("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (txtfile, output_text, output_trans)) 
     else:
-        corpus_line = u"%s\t%s\t%s\t%s\t%s\n" % (basename, speaker_name, wavfile, output_text, output_trans)
+        corpus_line = u"%s\t%s\t%s\t%s\t%s\n" % (fileid, speaker_name, wavfile, output_text, output_trans)
         logger.debug("Corpus line: %s" % corpus_line)
         outfh.write(corpus_line)
 
