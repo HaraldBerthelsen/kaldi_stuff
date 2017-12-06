@@ -6,6 +6,8 @@ import xml.etree.ElementTree as ET
 
 #Suppress annoying info message from urllib3
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+#Set log level 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -183,8 +185,23 @@ for xmlfile in xmlfiles:
         if len(tokens) == 0:
             continue
         for tok in tokens:
-            if tok.text and tok.text != "xxx" and re.match("^[a-záéíóúA-ZÁÉÍÓÚ]+$", tok.text):
-                words.append(tok.text.lower())
+            #if tok.text and tok.text != "xxx" and re.match("^[a-záéíóúA-ZÁÉÍÓÚ]+$", tok.text):
+            #The regexp drops tokens with punctuation, and mwu-s
+            if tok.text and "xxx" not in tok.text and re.match("^[a-záéíóúA-ZÁÉÍÓÚ,.!?#'-]+$", tok.text):
+                text = tok.text.lower()
+                text = re.sub("[,.!?]","", text)
+                text = re.sub("^'","", text)
+                text = re.sub("^mwu#","", text)
+                text = re.sub("^-","", text)
+                text = re.sub("-$","", text)
+                #text = re.sub("#"," ", text)
+                text = text.strip()
+                if text != "":
+                    if "#" in text:
+                        #multi-word unit
+                        words.extend(text.split("#"))
+                    else:
+                        words.append(text)
         if len(words) == 0:
             continue
 
