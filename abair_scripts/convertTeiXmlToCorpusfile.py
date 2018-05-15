@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 
-import sys, glob, os.path, io, re, requests, json
+import sys, glob, os.path, io, re, requests, json, wave
 import logging
 import xml.etree.ElementTree as ET
 
@@ -11,17 +11,19 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+#Use aeneas to split paragraphs into chunks
+split_paragraphs = True
 
 #Only needs to be done if timings have changed, or on the first run!
-cut_wavfile = False
+cut_wavfile = True
 
-if len(sys.argv) == 4:
-    teitok_dir = sys.argv[1]
-    corpus_base = sys.argv[2]
-    audio_base = sys.argv[3]
+if len(sys.argv) > 3:
+    corpus_base = sys.argv[1]
+    audio_base = sys.argv[2]
+    xmlfiles = sys.argv[3:]
 else:
-    print("USAGE: python convertTeiXmlToCorpusfile.py <teitok_dir> <corpus_base> <audio_base>")
-    print("Example: python scripts/abair_scripts/convertTeiXmlToCorpusfile.py teitok_comhra_test data audio")
+    print("USAGE: python convertTeiXmlToCorpusfile.py <corpus_base> <audio_base> <teitok xml files>")
+    print("Example: python scripts/abair_scripts/convertTeiXmlToCorpusfile.py data audio xml/*.xml")
     sys.exit(1)
 
 
@@ -40,7 +42,7 @@ def getTrans(dialect,text):
         #sys.exit(1)
 
 
-    logger.debug("Transcribing: %s" % text)
+    logger.info("Transcribing: %s" % text)
     headers = {"Content-type": "application/json", "Accept": "text/plain", "Connection":"keep-alive"}
     data = {
         "input": text,
@@ -103,12 +105,18 @@ def getTrans(dialect,text):
         transcription = re.sub(" +"," ",transcription)
         transcription = transcription.strip()
 
+        #uncertain word, transcription should be "spn"
+        if orth == "spn":
+            transcription = "spn"
+
+
+        
         trans.append(transcription)
         i += 1
     return trans
 
-xmlfiles = glob.glob("%s/xml/*.xml" % teitok_dir)
-xmlfiles.sort()
+#xmlfiles = glob.glob("%s/xml/*.xml" % teitok_dir)
+#xmlfiles.sort()
 for xmlfile in xmlfiles:
     logger.info("Reading tei xml file: %s" % xmlfile)
     basename = os.path.splitext(os.path.basename(xmlfile))[0]
@@ -117,6 +125,8 @@ for xmlfile in xmlfiles:
 
 
     #make sure wavfile is there
+    teitok_dir = "%s/.." % os.path.dirname(xmlfile)
+    print(teitok_dir)
     wavfilename = "%s/wav/%s.wav" % (teitok_dir, basename)
     if not os.path.isfile(wavfilename):
         logger.error("ERROR: wavfile %s is missing" % wavfilename)
@@ -128,6 +138,19 @@ for xmlfile in xmlfiles:
     tree = ET.parse(xmlfile)
     root = tree.getroot()
 
+    #Look for "scribe" tag, and don't process if scribe is AUTO
+    try:
+        scribe = root.find(".//Trans").attrib["scribe"]
+        logger.info("scribe: %s" % scribe)
+        if scribe == "AUTO":
+            logger.warning("xmlfile %s - scribe: %s, SKIPPING" % (xmlfile,scribe))
+            continue
+    except Exception as e:
+        logger.error("Couldn't find scribe in %s, reason:\n%s" % (xmlfile,e))
+        continue
+
+
+    
     #create speaker names and add to spk2gender file
     speakers = {}
     for person in root.findall(".//person"):
@@ -181,20 +204,26 @@ for xmlfile in xmlfiles:
         speaker_name = speakers[who]["name"]
 
         words = []
-        tokens = u.findall("tok")
+        tokens = u.findall(".//tok")
         if len(tokens) == 0:
             continue
         for tok in tokens:
             #if tok.text and tok.text != "xxx" and re.match("^[a-záéíóúA-ZÁÉÍÓÚ]+$", tok.text):
             #The regexp drops tokens with punctuation, and mwu-s
-            if tok.text and "xxx" not in tok.text and re.match("^[a-záéíóúA-ZÁÉÍÓÚ,.!?#'-]+$", tok.text):
+            if tok.text and re.match("^[a-záéíóúA-ZÁÉÍÓÚ,.!?#'-]+$", tok.text):
                 text = tok.text.lower()
-                text = re.sub("[,.!?]","", text)
+
+
+                #fix some other issues
                 text = re.sub("^'","", text)
                 text = re.sub("^mwu#","", text)
                 text = re.sub("^-","", text)
                 text = re.sub("-$","", text)
-                #text = re.sub("#"," ", text)
+
+                #replace uncertain words with "spn" (also needed in output from ltsserver)
+                if "xxx" in text:
+                    text = "spn"
+                
                 text = text.strip()
                 if text != "":
                     if "#" in text:
@@ -213,6 +242,89 @@ for xmlfile in xmlfiles:
             "text":words, 
             "trans":[]
         }
+
+    #If there is punctuation in the text, use aeneas to split it into chunks
+    if split_paragraphs:
+        for textid in sorted(texts.keys()):
+            spkr = texts[textid]["name"]
+            start = texts[textid]["start"]
+            end = texts[textid]["end"]
+            text = texts[textid]["text"]
+            if re.search("[,.!?]", " ".join(text)):
+                try:
+                    logger.info(u"FOUND PUNCTUATION IN: %s\t%s\t%s\t%s\t%s" % (spkr,textid,start,end," ".join(text)))
+                    #First check that the soundfile is actually this long
+                    #If it isn't, that means there is a problem with the xml markup..
+                    wf = wave.open(wavfilename,'r')
+                    frames = wf.getnframes()
+                    rate = wf.getframerate()
+                    wf.close()
+                    duration = frames / float(rate)
+
+                    if start > duration:
+                        msg = "Textid %s has starttime %f, but wavfile is only %f. SKIPPING" % (textid, start, duration)
+                        del texts[textid]
+                        logger.warning(msg)
+                        raise Exception(msg)
+                        
+
+                    
+                    #make a temporary cut wavfile with this part of the main wavfile
+                    tmp_wavfile = "/tmp/%s.wav" % textid
+                    sox_command = "sox %s -r 16000 -c 1 %s trim %f %f" % (wavfilename, tmp_wavfile, start, end-start)
+                    logger.info(sox_command)
+                    os.system(sox_command)
+
+                    #split text on punctuation, write each chunk to one line of temporary text file
+                    tmpchunks = re.split("[,.!?]", " ".join(text))
+                    chunks = []
+                    for chunk in tmpchunks:
+                        if not re.match("^\s*$", chunk):
+                            chunks.append(chunk)
+
+
+                    tmp_txtfile = "/tmp/%s.txt" % textid
+                    fh = io.open(tmp_txtfile, "w", encoding="utf-8")
+                    fh.write("\n".join(chunks))
+                    fh.close()
+
+                    #call aeneas with temp files, output in temporary json file
+                    tmp_jsonfile = "/tmp/%s.json" % textid
+                    aeneas_config = "task_language=ga|os_task_file_format=json|is_text_type=plain|task_adjust_boundary_algorithm=percent|task_adjust_boundary_percent_value=50"
+                    run_aeneas_cmd = 'python -m aeneas.tools.execute_task "%s" %s "%s" %s' % (tmp_wavfile,  tmp_txtfile, aeneas_config, tmp_jsonfile)
+
+                    logger.info(run_aeneas_cmd)
+                    
+                    os.system(run_aeneas_cmd)
+
+                    #read json file, create new textids, remove original textid
+                    timings = json.loads(open(tmp_jsonfile).read())
+                    fragments = timings["fragments"]
+
+                    i = 0
+                    while i < len(fragments):
+                        fragment = fragments[i]
+
+                        logger.debug(fragment["begin"])
+                        logger.debug(fragment["end"])
+                        ftext = "".join(fragment["lines"])
+                        logger.debug(ftext)
+
+                        i += 1
+
+                        chunkid = "%s_%03d" % (textid,i)
+                        texts[chunkid] = {
+                            "name":spkr,
+                            "start":start+float(fragment["begin"]),
+                            "end":start+float(fragment["end"]),
+                            "text":ftext.split(" "),
+                            "trans":[]
+                        }
+                    del texts[textid]
+                except Exception as e:
+                    logger.error("Failed to split paragraph %s\nTEXT: %s\nERROR MESSAGE: %s" % (textid," ".join(text),e))
+                    #sys.exit()
+        
         
 
     #cut wavfile
@@ -233,13 +345,17 @@ for xmlfile in xmlfiles:
 
             new_wavfile = "%s/%s.wav" % (corpuswavdir,textid)
 
-            sox_command = "sox %s -r 16000 -c 1 %s trim %f %f" % (wavfilename, new_wavfile, start, end-start)
-            logger.info(sox_command)
-            os.system(sox_command)
+            if end-start > 0:        
+                sox_command = "sox %s -r 16000 -c 1 %s trim %f %f" % (wavfilename, new_wavfile, start, end-start)
+                logger.info(sox_command)
+                os.system(sox_command)
+            else:
+                logger.warning("Textid %s is zero length (or less). SKIPPING." % textid)
+                del texts[textid]
             #sys.exit()
         
     #add transcription
-    for textid in texts.keys():
+    for textid in sorted(texts.keys()):
         spkr = texts[textid]["name"]
         text = texts[textid]["text"]
         trans = texts[textid]["trans"]
@@ -297,14 +413,23 @@ for xmlfile in xmlfiles:
             trans = texts[textid]["trans"]
 
             wavfile = "../../%s/%s/wav/%s.wav" % (audio_base,speaker_name,textid)
-            output_text = " ".join(text)
-            output_trans = " # ".join(trans)
-        
+
+            if "" in trans:
+                logger.info("Found empty trans, trying to repair")
+                i = 0
+                while i < len(trans):
+                    if trans[i] == "":
+                        trans[i] = "spn"
+                    i += 1
+
+            
             if "" in trans or trans == []:
                 logger.warning("WARNING: Empty transcription in %s (text %s, trans %s), not printing line!" % (xmlfile, output_text, output_trans)) 
             else:
+                output_text = " ".join(text)
+                output_trans = " # ".join(trans)
                 corpus_line = u"%s\t%s\t%s\t%s\t%s\n" % (textid, speaker_name, wavfile, output_text, output_trans)
-                logger.debug("Corpus line: %s" % corpus_line)
+                #logger.debug("Corpus line: %s" % corpus_line)
                 outfh.write(corpus_line)
 
         outfh.close()
