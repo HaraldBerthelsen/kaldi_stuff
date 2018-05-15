@@ -231,6 +231,7 @@ for xmlfile in xmlfiles:
                         words.extend(text.split("#"))
                     else:
                         words.append(text)
+
         if len(words) == 0:
             continue
 
