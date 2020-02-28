@@ -8,9 +8,12 @@
 #corpusfiles=data/dodm_seanchas_rann_na_feirste/corpusfile.txt
 #corpusfiles=data/*_named_entities/corpusfile.txt
 
-name=irish_test_26oct_all_data
+#name=irish_test_26oct_all_data
 #corpusfiles=data/dodm_seanchas_rann_na_feirste/corpusfile.txt
-corpusfiles=data/*/corpusfile.txt
+#corpusfiles=data/*/corpusfile.txt
+
+name=irish_test_feb27_2020
+corpusfiles=/home/harald/git/abair-gitea/abair-corpora/mileglor-macbook-air/*/corpusfile.txt
 
 
 rm -rf /home/harald/git/kaldi/egs/$name
@@ -21,10 +24,13 @@ rm -rf /home/harald/git/kaldi/egs/$name
 #bash setup_language_files.sh $name $audio
 
 #Assumes corpusfiles!
-python scripts/makeKaldiFiles.py $name $corpusfiles
+#python scripts/makeKaldiFiles.py $name $corpusfiles
+python makeKaldiFiles.py $name $corpusfiles
 
-cp -r scripts/scripts/* /home/harald/git/kaldi/egs/$name/
-cp -r scripts/conf /home/harald/git/kaldi/egs/$name/
+#cp -r scripts/scripts/* /home/harald/git/kaldi/egs/$name/
+#cp -r scripts/conf /home/harald/git/kaldi/egs/$name/
+cp -r scripts/* /home/harald/git/kaldi/egs/$name/
+cp -r conf /home/harald/git/kaldi/egs/$name/
 
 cd /home/harald/git/kaldi/egs/$name/
 

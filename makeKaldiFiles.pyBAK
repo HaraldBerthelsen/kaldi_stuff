@@ -1,8 +1,6 @@
 #-*- coding: utf-8 -*-
 import sys, os, io, re, wave, random
 
-import requests
-
 #Using corpusfiles to setup kaldi.
 
 #input:
@@ -20,20 +18,13 @@ import requests
 #default settings for kaldibase, spk2gender_file, split_method
 #TODO allow setting these with command line options
 
-#kaldi_base = "/home/harald/test_kaldi_data"
 kaldi_base = "/home/harald/git/kaldi/egs"
-
-spk2gender_file = "asr_data_irish/data/spk2gender"
-
-split_method = None #random_percentage, random_number, corpusfile, speaker, list, None ..
-
-#split_method = "random_percentage" #random_percentage, random_number, corpusfile, speaker, list, None ..
+spk2gender_file = "data/spk2gender"
+split_method = "random_percentage" #random_percentage, random_number, corpusfile, speaker, list ..
 test_percentage = 2
-
-
 silence_phones = [("!SIL","sil"), ("<UNK>","spn")]
 
-exit_on_first_error = False
+exit_on_first_error = True
 exit_on_file_error = False
 
 kaldi_corpus_file="data/local/corpus.txt"
@@ -48,7 +39,7 @@ kaldi_wav_scp_file="wav.scp"
 kaldi_text_file="text"
 kaldi_utt2spk_file="utt2spk"
 
-usage = "Usage: python scripts/makeKaldiFiles.py <experiment-directory> <corpusfile1> .. <corpusfileN>\nExample: python ../kaldi_stuff/makeKaldiFiles.py irish_named_entities_test *_named_entities/corpusfile.txt"
+usage = "Usage: python makeKaldiFiles.py <experiment-directory> <corpusfile1> .. <corpusfileN>\nExample: python ../kaldi_stuff/makeKaldiFiles.py irish_named_entities_test *_named_entities/corpusfile.txt"
 
 spk2gender_dict = {}
 corpusdict = {}
@@ -121,70 +112,34 @@ def validate_spk2gender_file(spk2gender_file):
 def validate_corpusfile(corpusfile):
     fh = io.open(corpusfile,"r",encoding="utf-8")
     lines = fh.readlines()
-    print("\nFile: %s, lines: %d" % (corpusfile,len(lines)))
     linenr = 0
-    fileok = True
-    okcounter = 0
+    ok = True
     for line in lines:
-        if re.match("^\s*$", line):
-            continue
-        if line.startswith("#"):
-            continue
-
-        
-        ok = True
-        #line = line.strip()
+        line = line.strip()
         linenr += 1
 
         #definition of fields
-        speaker_re = u"[a-z0-9-]+"
+        speaker_re = u"[a-z0-9]+"
         #Don't allow fileids that don't start with speaker name
         fileid_re = u"%s_[a-zA-Z0-9_-]+" % speaker_re
         #Allow fileids that don't start with speaker name
         #fileid_re = u".*%s_[a-zA-Z0-9_-]+" % speaker_re
-        wavfile_re = u"[a-zA-Z0-9_/.:-]+.wav"
-        text_re = u"[A-ZÁÉÍÓÚa-záéíóú0-9 '|.,?!-]+"
-        trans_re = u"[a-z@# _.012-]+"
+        wavfile_re = u"[a-zA-Z0-9_/.-]+.wav"
+        text_re = u"[a-záéíóú0-9 '|-]+"
+        trans_re = u"[a-z@# _]+"
         
         #regexp = "^(%s)\t(%s)\t(%s)\t(%s)\t(%s)$" % (fileid_re,speaker_re,wavfile_re,text_re,trans_re)
         #m = re.match(regexp, line)
         #if not m:
         #    print(u"Error in %s line %d (doesn't match regexp \"%s\": %s" % (corpusfile, linenr, regexp, line))
         #    ok = False
-
-        gender = None
-        comment = None
+       
         try:    
-            fields = line.split("\t")
-            #print("len(fields): %d" % len(fields))
-            if len(fields) == 5:
-                (fileid,speaker,wavfile,text,trans) = fields
-            elif len(fields) == 6:
-                (fileid,speaker,gender,wavfile,text,trans) = fields
-            elif len(fields) == 7:
-                (fileid,speaker,gender,wavfile,text,trans,comment) = fields
-            else:
-                ok = False
-                print("Error in line %s" % line)
-
-            
+            (fileid,speaker,wavfile,text,trans) = line.split("\t")
         except:
             ok = False
             print("Error in line %s" % line)
 
-        #Fix for cillairne speaker id's that kaldi doesn't like
-        m = re.match("^([ab])([0-9]+)$", speaker)
-        if m:
-            newspeaker = "%s%03d" % (m.group(1), int(m.group(2)))
-            newfileid = re.sub("^%s" % speaker, newspeaker, fileid)
-            speaker = newspeaker
-            fileid = newfileid
-
-        if trans == "":
-            ok = False
-            print("Error: empty transcription in line %s" % line)
-            
-            
 
         if not re.match(fileid_re,fileid):
             ok = False
@@ -209,83 +164,37 @@ def validate_corpusfile(corpusfile):
             #check that speaker is in spk2gender file
             #speaker = m.group(2)
             if speaker not in spk2gender_dict:
-                if gender in ["f", "m"]:
-                    spk2gender_dict[speaker] = gender
-                else:
-                    print("ERROR: speaker %s is not in spk2gender file %s, and gender is %s" % (speaker, spk2gender_file, gender))
-                    ok = False
-                    if exit_on_first_error:
-                        sys.exit(1)
+                print("ERROR: speaker %s is not in spk2gender file %s" % (speaker, spk2gender_file))
+                ok = False
+                if exit_on_first_error:
+                    sys.exit(1)
                      
             #check that wavfile exists and is in right format (16kHz mono)
-
-            checkHttp = False
-            #servernameReplace = False
-            servernameReplace = "/media/phonetics/asr_data_irish/audio"
-            servername = "https://www.abair.tcd.ie/asr_data_irish_audio"
-            if wavfile.startswith(servername):
-                if checkHttp:
-                    #requests very slow
-                    r=requests.head(wavfile)
-                    returncode = r.status_code                
-                    if returncode == 200:
-                        pass
-                    else:
-                        print("ERROR: wavfile %s doesn't exist" % (wavfile))
-                        ok = False
-                        if exit_on_first_error:
-                            sys.exit(1)
-                elif servernameReplace:
-                    wavfile = re.sub("^%s" % servername, servernameReplace, wavfile)
-                    if not os.path.isfile(wavfile):
-                        print("ERROR: wavfile %s doesn't exist" % (wavfile,))
-                        ok = False
-                        if exit_on_first_error:
-                            sys.exit(1)
-                    else:
-                        w = wave.open(wavfile)
-                        channels = w.getnchannels()
-                        rate = w.getframerate()
-                        if channels != 1 or rate != 16000:
-                            print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (wavfile,rate,channels))
-                            ok = False
-                            if exit_on_first_error:
-                                sys.exit(1)
-                    
-            else:            
-                corpusdir = os.path.dirname(corpusfile)
-                pathtowavfile = "%s/%s" % (corpusdir, wavfile)
-                if not os.path.isfile(pathtowavfile):
-                    print("ERROR: wavfile %s doesn't exist" % (pathtowavfile,))
+            #wavfile = m.group(3)
+            corpusdir = os.path.dirname(corpusfile)
+            pathtowavfile = "%s/%s" % (corpusdir, wavfile)
+            if not os.path.isfile(pathtowavfile):
+                print("ERROR: wavfile %s doesn't exist" % (pathtowavfile,))
+                ok = False
+                if exit_on_first_error:
+                    sys.exit(1)
+            else:
+                w = wave.open(pathtowavfile)
+                channels = w.getnchannels()
+                rate = w.getframerate()
+                if channels != 1 or rate != 16000:
+                    print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (pathtowavfile,rate,channels))
                     ok = False
                     if exit_on_first_error:
                         sys.exit(1)
-                else:
-                    w = wave.open(pathtowavfile)
-                    channels = w.getnchannels()
-                    rate = w.getframerate()
-                    if channels != 1 or rate != 16000:
-                        print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (pathtowavfile,rate,channels))
-                        ok = False
-                        if exit_on_first_error:
-                            sys.exit(1)
 
             #check that text and trans match
             #text = m.group(4).split(" ")
             #trans = m.group(5).split(" # ")
-
-            #normalise text a bit..
-            text = text.lower()
-            text = re.sub("[.,?!:]", "", text)
-
-            
             text = text.split(" ")
             trans = trans.split(" # ")
-            trans = [value for value in trans if value != "sil"]
-
             if not len(text) == len(trans):
-                print("ERROR in %s line %s: text and transcription are not equal length!\nText  (%d): %s\nTrans (%d): %s" % (corpusfile, linenr, len(text), "\t|\t".join(text), len(trans), "\t|\t".join(trans)))
-                print("Skipping line %d (text and transcription don't match)" % (linenr))
+                print("ERROR: text and transcription are not equal length!\nText  (%d): %s\nTrans (%d): %s" % (len(text), text, len(trans), trans))
                 ok = False
                 if exit_on_first_error:
                     sys.exit(1)
@@ -295,48 +204,17 @@ def validate_corpusfile(corpusfile):
             ok = False
             if exit_on_first_error:
                 sys.exit(1)
-
-        if comment and "delete" in comment:
-            print("Skipping line %d (delete comment)" % (linenr))
-            ok = False
-
-        (trans, msg) = validateTrans(trans)
-        if not trans:
-            print("ERROR in %s line %s: INVALID TRANSCRIPTION %s: %s" % (corpusfile, linenr, trans, msg))
-            ok = False
-            if exit_on_first_error:
-                sys.exit(1)
-
-
-
-            
-        if ok == False:
-            fileok = False
         else:
-            #Old way - remove later
-            #path_to_wavfile = "%s/%s" % (os.path.dirname(os.path.abspath(corpusfile)), wavfile)
-            path_to_wavfile =  wavfile
+            path_to_wavfile = "%s/%s" % (os.path.dirname(os.path.abspath(corpusfile)), wavfile)
             corpusdict[fileid] = (speaker,path_to_wavfile,text,trans)
-            okcounter += 1
-    print("OK lines in %s: %d" % (corpusfile, okcounter))
-    return fileok
+            #print("Adding to corpusdict: %s %s" % (fileid,corpusdict[fileid]))
+    return ok
     
-def validateTrans(trans):
-    newtrans = [] 
-    for t in trans:
-        #remove stress levels and syllable boundaries
-        t = re.sub("(^| )([0-9.] )+"," ", t).strip()
-        newtrans.append(t)
-    return (newtrans, True)
-                  
 
-                  
 def splitTrainTest():
     traindict = {"mode": "train", "dict":{}, "spk2gender":{}}
     testdict = {"mode": "test", "dict": {}, "spk2gender":{}}
-    if split_method == None:
-        traindict["dict"] = corpusdict
-    elif split_method == "random_percentage":
+    if split_method == "random_percentage":
         for key in corpusdict:
             p = random.randint(0,100)
             #print("Selecting train/test for %s: %d > %d ?" % (key,p,test_percentage))
@@ -400,7 +278,7 @@ def writeKaldiLanguageFiles(expdir):
     for text in kaldi_corpus:
         fh.write(u"%s\n" % " ".join(text))
     fh.close()
-    print("\nWritten %d lines to %s" % (len(kaldi_corpus),path_to_kaldi_corpus_file))
+    print("Written %d lines to %s" % (len(kaldi_corpus),path_to_kaldi_corpus_file))
 
     #lexicon.txt
     path_to_kaldi_lexicon_file = "%s/%s" % (expdir,kaldi_lexicon_file)
