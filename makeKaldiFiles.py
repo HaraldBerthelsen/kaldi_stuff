@@ -219,56 +219,61 @@ def validate_corpusfile(corpusfile):
                      
             #check that wavfile exists and is in right format (16kHz mono)
 
-            checkHttp = False
-            #servernameReplace = False
-            servernameReplace = "/media/phonetics/asr_data_irish/audio"
-            servername = "https://www.abair.tcd.ie/asr_data_irish_audio"
-            if wavfile.startswith(servername):
-                if checkHttp:
-                    #requests very slow
-                    r=requests.head(wavfile)
-                    returncode = r.status_code                
-                    if returncode == 200:
-                        pass
-                    else:
-                        print("ERROR: wavfile %s doesn't exist" % (wavfile))
-                        ok = False
-                        if exit_on_first_error:
-                            sys.exit(1)
-                elif servernameReplace:
-                    wavfile = re.sub("^%s" % servername, servernameReplace, wavfile)
-                    if not os.path.isfile(wavfile):
-                        print("ERROR: wavfile %s doesn't exist" % (wavfile,))
-                        ok = False
-                        if exit_on_first_error:
-                            sys.exit(1)
-                    else:
-                        w = wave.open(wavfile)
-                        channels = w.getnchannels()
-                        rate = w.getframerate()
-                        if channels != 1 or rate != 16000:
-                            print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (wavfile,rate,channels))
+            #in some cases, you might want to run the script without checking wavfiles. In that case, set checkWavFiles to False
+            checkWavFiles = True 
+            #checkWavFiles = False
+           
+            if checkWavFiles:
+                checkHttp = False
+                #servernameReplace = False
+                servernameReplace = "/media/phonetics/asr_data_irish/audio"
+                servername = "https://www.abair.tcd.ie/asr_data_irish_audio"
+                if wavfile.startswith(servername):
+                    if checkHttp:
+                        #requests very slow
+                        r=requests.head(wavfile)
+                        returncode = r.status_code                
+                        if returncode == 200:
+                            pass
+                        else:
+                            print("ERROR: wavfile %s doesn't exist" % (wavfile))
                             ok = False
                             if exit_on_first_error:
                                 sys.exit(1)
-                    
-            else:            
-                corpusdir = os.path.dirname(corpusfile)
-                pathtowavfile = "%s/%s" % (corpusdir, wavfile)
-                if not os.path.isfile(pathtowavfile):
-                    print("ERROR: wavfile %s doesn't exist" % (pathtowavfile,))
-                    ok = False
-                    if exit_on_first_error:
-                        sys.exit(1)
-                else:
-                    w = wave.open(pathtowavfile)
-                    channels = w.getnchannels()
-                    rate = w.getframerate()
-                    if channels != 1 or rate != 16000:
-                        print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (pathtowavfile,rate,channels))
+                    elif servernameReplace:
+                        wavfile = re.sub("^%s" % servername, servernameReplace, wavfile)
+                        if not os.path.isfile(wavfile):
+                            print("ERROR: wavfile %s doesn't exist" % (wavfile,))
+                            ok = False
+                            if exit_on_first_error:
+                                sys.exit(1)
+                        else:
+                            w = wave.open(wavfile)
+                            channels = w.getnchannels()
+                            rate = w.getframerate()
+                            if channels != 1 or rate != 16000:
+                                print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (wavfile,rate,channels))
+                                ok = False
+                                if exit_on_first_error:
+                                    sys.exit(1)
+
+                else:            
+                    corpusdir = os.path.dirname(corpusfile)
+                    pathtowavfile = "%s/%s" % (corpusdir, wavfile)
+                    if not os.path.isfile(pathtowavfile):
+                        print("ERROR: wavfile %s doesn't exist" % (pathtowavfile,))
                         ok = False
                         if exit_on_first_error:
                             sys.exit(1)
+                    else:
+                        w = wave.open(pathtowavfile)
+                        channels = w.getnchannels()
+                        rate = w.getframerate()
+                        if channels != 1 or rate != 16000:
+                            print("ERROR: wavfiles need to be 16kHz mono. %s is %d Hz, number of channels: %d" % (pathtowavfile,rate,channels))
+                            ok = False
+                            if exit_on_first_error:
+                                sys.exit(1)
 
             #check that text and trans match
             #text = m.group(4).split(" ")
