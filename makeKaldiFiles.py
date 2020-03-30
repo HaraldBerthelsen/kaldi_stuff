@@ -23,7 +23,7 @@ import requests
 #kaldi_base = "/home/harald/test_kaldi_data"
 kaldi_base = "/home/harald/git/kaldi/egs"
 
-spk2gender_file = "asr_data_irish/data/spk2gender"
+spk2gender_file = os.path.expanduser("~/git/abair-gitea/abair-corpora/asr_data_irish/data/spk2gender")
 
 split_method = None #random_percentage, random_number, corpusfile, speaker, list, None ..
 
@@ -34,7 +34,7 @@ test_percentage = 2
 silence_phones = [("!SIL","sil"), ("<UNK>","spn")]
 
 exit_on_first_error = False
-exit_on_file_error = False
+exit_on_file_error = True
 
 kaldi_corpus_file="data/local/corpus.txt"
 kaldi_lexicon_file="data/local/dict/lexicon.txt"
@@ -75,6 +75,8 @@ def main(kaldi_base, expdir, corpusfiles):
             sys.exit(1)
     else:
         print("spk2gender file %s doesn't exist" % spk2gender_file)
+        if exit_on_file_error:
+            sys.exit(1)
 
     #validate the corpusfiles
     for corpusfile in corpusfiles:
@@ -86,6 +88,8 @@ def main(kaldi_base, expdir, corpusfiles):
                 sys.exit(1)
         else:
             print("corpus file %s doesn't exist" % corpusfile)
+        if exit_on_file_error:
+            sys.exit(1)
 
     #Split train/test
     traintestdicts = splitTrainTest()
@@ -106,7 +110,7 @@ def validate_spk2gender_file(spk2gender_file):
    for line in lines:
        line = line.strip()
        linenr += 1
-       regexp = "^([a-z0-9_]+)\t([mf])$"
+       regexp = "^([a-zA-Z0-9_-]+)\s+([mfu])$"
        m = re.match(regexp, line)
        if m:
            spk2gender_dict[m.group(1)] = m.group(2)
