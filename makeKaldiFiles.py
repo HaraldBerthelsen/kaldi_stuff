@@ -35,6 +35,7 @@ silence_phones = [("!SIL","sil"), ("<UNK>","spn")]
 
 exit_on_first_error = False
 exit_on_file_error = True
+exit_on_corpusfile_error = False
 
 kaldi_corpus_file="data/local/corpus.txt"
 kaldi_lexicon_file="data/local/dict/lexicon.txt"
@@ -83,7 +84,7 @@ def main(kaldi_base, expdir, corpusfiles):
         if os.path.isfile(corpusfile):
             if validate_corpusfile(corpusfile):
                 print("corpusfile %s is OK" % corpusfile)
-            elif exit_on_file_error:
+            elif exit_on_corpusfile_error:
                 print("Error in corpusfile %s" % corpusfile)
                 sys.exit(1)
         else:
