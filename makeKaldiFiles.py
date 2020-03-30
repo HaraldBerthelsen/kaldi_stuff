@@ -465,7 +465,7 @@ def writeKaldiDataFiles(expdir, traintestdicts):
         #spk2gender
         path_to_kaldi_spk2gender_file = "%s/%s" % (datadir,kaldi_spk2gender_file)
         fh = io.open(path_to_kaldi_spk2gender_file,"w",encoding="utf-8")  
-        for speaker in sorted(cdict["spk2gender"]).keys():
+        for speaker in sorted(cdict["spk2gender"]):
             fh.write(u"%s %s\n" % (speaker, cdict["spk2gender"][speaker]))
         fh.close()
         print("Written %d lines to %s" % (len(cdict["spk2gender"]),path_to_kaldi_spk2gender_file))
