@@ -89,8 +89,8 @@ def main(kaldi_base, expdir, corpusfiles):
                 sys.exit(1)
         else:
             print("corpus file %s doesn't exist" % corpusfile)
-        if exit_on_file_error:
-            sys.exit(1)
+            if exit_on_file_error:
+                sys.exit(1)
 
     #Split train/test
     traintestdicts = splitTrainTest()
