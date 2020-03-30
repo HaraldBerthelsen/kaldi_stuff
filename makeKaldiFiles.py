@@ -221,7 +221,7 @@ def validate_corpusfile(corpusfile):
 
             #in some cases, you might want to run the script without checking wavfiles. In that case, set checkWavFiles to False
             checkWavFiles = True 
-            checkWavFiles = False
+            #checkWavFiles = False
            
             if checkWavFiles:
                 checkHttp = False
